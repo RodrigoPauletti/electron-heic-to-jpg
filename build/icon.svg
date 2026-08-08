@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="HEIC Converter">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a2a3a"/>
+      <stop offset="100%" stop-color="#0c1117"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5aaff5"/>
+      <stop offset="100%" stop-color="#3ecf8e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+  <rect x="180" y="210" width="520" height="620" rx="48" fill="#18232e" stroke="#3d9cf0" stroke-width="28"/>
+  <rect x="320" y="160" width="520" height="620" rx="48" fill="url(#accent)" opacity="0.95"/>
+  <path d="M470 390h220M470 490h220M470 590h140" stroke="#041018" stroke-width="42" stroke-linecap="round"/>
+  <circle cx="410" cy="390" r="28" fill="#041018"/>
+</svg>
