@@ -27,6 +27,8 @@ export const IPC_CHANNELS = {
   CONVERT_CANCEL: 'convert:cancel',
   OPEN_PATH: 'shell:open-path',
   GET_APP_INFO: 'app:get-info',
+  GET_PREVIEW: 'preview:get',
+  CLEAR_PREVIEW_CACHE: 'preview:clear-cache',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

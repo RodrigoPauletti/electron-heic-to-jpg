@@ -31,6 +31,11 @@ const api: HeicConverterApi = {
 
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
+  getPreview: (filePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_PREVIEW, filePath),
+
+  clearPreviewCache: () => ipcRenderer.invoke(IPC_CHANNELS.CLEAR_PREVIEW_CACHE),
+
   onConvertProgress: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: ConvertProgressEvent) => {
       callback(payload);

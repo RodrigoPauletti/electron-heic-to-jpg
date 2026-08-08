@@ -14,21 +14,36 @@ function getApi(): HeicConverterApi | null {
   return window.heicConverter ?? null;
 }
 
-function mergeUnique(existing: QueueFile[], incoming: SourceFileInfo[]): QueueFile[] {
+function mergeUnique(
+  existing: QueueFile[],
+  incoming: SourceFileInfo[],
+): { files: QueueFile[]; duplicates: SourceFileInfo[] } {
   const map = new Map(existing.map((file) => [file.path.toLowerCase(), file]));
+  const duplicates: SourceFileInfo[] = [];
 
   for (const file of incoming) {
     const key = file.path.toLowerCase();
-    if (!map.has(key)) {
-      map.set(key, {
-        ...file,
-        status: 'pending',
-        progress: 0,
-      });
+    if (map.has(key)) {
+      duplicates.push(file);
+      continue;
     }
+
+    map.set(key, {
+      ...file,
+      status: 'pending',
+      progress: 0,
+      previewStatus: 'idle',
+    });
   }
 
-  return [...map.values()];
+  return { files: [...map.values()], duplicates };
+}
+
+function buildNoticeParts(parts: string[]): string | null {
+  if (parts.length === 0) {
+    return null;
+  }
+  return parts.join(' ');
 }
 
 export function useConverter() {
@@ -41,6 +56,74 @@ export function useConverter() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [apiReady, setApiReady] = useState(() => Boolean(getApi()));
   const convertingRef = useRef(false);
+  const previewRequestedRef = useRef(new Set<string>());
+  const filesRef = useRef<QueueFile[]>([]);
+
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
+  const requestPreview = useCallback((fileId: string) => {
+    const api = getApi();
+    if (!api) {
+      return;
+    }
+
+    if (previewRequestedRef.current.has(fileId)) {
+      return;
+    }
+
+    const target = filesRef.current.find((file) => file.id === fileId);
+    if (!target || target.previewStatus === 'ready' || target.previewStatus === 'loading') {
+      return;
+    }
+
+    previewRequestedRef.current.add(fileId);
+
+    setFiles((current) =>
+      current.map((item) =>
+        item.id === fileId ? { ...item, previewStatus: 'loading', previewError: undefined } : item,
+      ),
+    );
+
+    void (async () => {
+      try {
+        const result = await api.getPreview(target.path);
+        setFiles((current) =>
+          current.map((item) => {
+            if (item.id !== fileId) {
+              return item;
+            }
+            if (result.dataUrl) {
+              return {
+                ...item,
+                previewUrl: result.dataUrl,
+                previewStatus: 'ready',
+                previewError: undefined,
+              };
+            }
+            return {
+              ...item,
+              previewStatus: 'error',
+              previewError: result.error ?? 'Falha ao gerar preview.',
+            };
+          }),
+        );
+      } catch {
+        setFiles((current) =>
+          current.map((item) =>
+            item.id === fileId
+              ? {
+                  ...item,
+                  previewStatus: 'error',
+                  previewError: 'Falha ao gerar preview.',
+                }
+              : item,
+          ),
+        );
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     const api = getApi();
@@ -133,21 +216,60 @@ export function useConverter() {
     setErrorMessage(null);
     const result = await api.resolvePaths(paths);
 
-    setFiles((current) => mergeUnique(current, result.files));
+    const existingPaths = new Set(
+      filesRef.current.map((file) => file.path.toLowerCase()),
+    );
+    const duplicates = result.files.filter((file) =>
+      existingPaths.has(file.path.toLowerCase()),
+    );
+
+    setFiles((current) => mergeUnique(current, result.files).files);
     setSummary(null);
 
+    const notices: string[] = [];
+
+    if (duplicates.length > 0) {
+      const previewNames = duplicates
+        .slice(0, 5)
+        .map((file) => file.name)
+        .join(', ');
+      const remaining = duplicates.length - Math.min(duplicates.length, 5);
+      const more = remaining > 0 ? ` e mais ${remaining}` : '';
+      if (duplicates.length === 1) {
+        notices.push(
+          `1 arquivo selecionado já estava na lista e foi ignorado${
+            previewNames ? `: ${previewNames}${more}` : ''
+          }.`,
+        );
+      } else {
+        notices.push(
+          `${duplicates.length} arquivos selecionados já estavam na lista e foram ignorados${
+            previewNames ? `: ${previewNames}${more}` : ''
+          }.`,
+        );
+      }
+    }
+
     if (result.ignoredCount > 0) {
-      const preview = result.ignoredNames.slice(0, 5).join(', ');
+      const previewNames = result.ignoredNames.slice(0, 5).join(', ');
       const remaining = result.ignoredCount - Math.min(result.ignoredNames.length, 5);
       const more = remaining > 0 ? ` e mais ${remaining}` : '';
-      setNotice(
-        `${result.ignoredCount} item(ns) ignorado(s) (apenas .heic/.heif são aceitos)${
-          preview ? `: ${preview}${more}` : ''
-        }.`,
-      );
-    } else {
-      setNotice(null);
+      if (result.ignoredCount === 1) {
+        notices.push(
+          `1 arquivo selecionado foi ignorado (apenas .heic/.heif são aceitos)${
+            previewNames ? `: ${previewNames}${more}` : ''
+          }.`,
+        );
+      } else {
+        notices.push(
+          `${result.ignoredCount} arquivos selecionados foram ignorados (apenas .heic/.heif são aceitos)${
+            previewNames ? `: ${previewNames}${more}` : ''
+          }.`,
+        );
+      }
     }
+
+    setNotice(buildNoticeParts(notices));
   }, []);
 
   const addFilesViaDialog = useCallback(async () => {
@@ -189,11 +311,27 @@ export function useConverter() {
     if (convertingRef.current) {
       return;
     }
+
+    previewRequestedRef.current.clear();
     setFiles([]);
     setSummary(null);
     setNotice(null);
     setErrorMessage(apiReady ? null : API_MISSING_MESSAGE);
+
+    const api = getApi();
+    if (api) {
+      void api.clearPreviewCache();
+    }
   }, [apiReady]);
+
+  const removeFile = useCallback((fileId: string) => {
+    if (convertingRef.current) {
+      return;
+    }
+
+    previewRequestedRef.current.delete(fileId);
+    setFiles((current) => current.filter((file) => file.id !== fileId));
+  }, []);
 
   const convert = useCallback(async () => {
     const api = getApi();
@@ -238,6 +376,14 @@ export function useConverter() {
     }
   }, [files, outputDir, quality]);
 
+  const cancelConversion = useCallback(async () => {
+    const api = getApi();
+    if (!api || !convertingRef.current) {
+      return;
+    }
+    await api.cancelConversion();
+  }, []);
+
   const openOutputFolder = useCallback(async () => {
     const api = getApi();
     if (!api) {
@@ -270,7 +416,10 @@ export function useConverter() {
     addFilesViaDialog,
     chooseOutputDir,
     clearList,
+    removeFile,
+    requestPreview,
     convert,
+    cancelConversion,
     openOutputFolder,
   };
 }

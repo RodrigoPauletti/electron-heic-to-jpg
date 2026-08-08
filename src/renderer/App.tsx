@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { APP_META } from '../shared/constants';
+import { ActionBar } from './components/ActionBar';
 import { DropZone } from './components/DropZone';
 import { FileList } from './components/FileList';
 import { ProgressFooter } from './components/ProgressFooter';
@@ -23,11 +24,17 @@ export function App() {
     addFilesViaDialog,
     chooseOutputDir,
     clearList,
+    removeFile,
+    requestPreview,
     convert,
+    cancelConversion,
     openOutputFolder,
   } = useConverter();
 
   const [version, setVersion] = useState(APP_META.version);
+  const hasFiles = files.length > 0;
+  const showProgressDock = Boolean((isConverting || summary) && hasFiles);
+  const actionsDisabled = isConverting || !apiReady;
 
   useEffect(() => {
     if (!window.heicConverter) {
@@ -40,7 +47,11 @@ export function App() {
   }, []);
 
   return (
-    <div className="app">
+    <div
+      className={`app has-bottom-dock${hasFiles ? ' has-files' : ''}${
+        showProgressDock ? ' has-progress-dock' : ''
+      }`}
+    >
       <header className="topbar">
         <div className="brand">
           <h1>{APP_META.name}</h1>
@@ -53,21 +64,8 @@ export function App() {
           outputDir={outputDir}
           quality={quality}
           disabled={isConverting || !apiReady}
-          canConvert={apiReady && files.length > 0 && Boolean(outputDir)}
-          hasFiles={files.length > 0}
           onQualityChange={setQuality}
           onChooseOutputDir={chooseOutputDir}
-          onAddFiles={addFilesViaDialog}
-          onConvert={convert}
-          onClear={clearList}
-        />
-
-        <DropZone
-          disabled={isConverting || !apiReady}
-          onPaths={(paths) => {
-            void addFromPaths(paths);
-          }}
-          onBrowse={addFilesViaDialog}
         />
 
         {notice ? <div className="notice">{notice}</div> : null}
@@ -77,20 +75,55 @@ export function App() {
           </div>
         ) : null}
 
-        <FileList files={files} />
+        {hasFiles ? (
+          <FileList
+            files={files}
+            canRemove={!isConverting}
+            canAdd={!isConverting && apiReady}
+            onRemove={removeFile}
+            onAddFiles={addFilesViaDialog}
+            onRequestPreview={requestPreview}
+          />
+        ) : null}
 
-        <ProgressFooter
-          isConverting={isConverting}
-          total={stats.total}
-          done={stats.done}
-          failed={stats.failed}
-          overall={stats.overall}
-          summary={summary}
-          onOpenFolder={() => {
-            void openOutputFolder();
-          }}
-        />
+        {!isConverting && !hasFiles ? (
+          <DropZone
+            disabled={!apiReady}
+            onPaths={(paths) => {
+              void addFromPaths(paths);
+            }}
+            onBrowse={addFilesViaDialog}
+          />
+        ) : null}
       </main>
+
+      <div className="bottom-dock">
+        {showProgressDock ? (
+          <ProgressFooter
+            isConverting={isConverting}
+            total={stats.total}
+            done={stats.done}
+            failed={stats.failed}
+            overall={stats.overall}
+            summary={summary}
+            onOpenFolder={() => {
+              void openOutputFolder();
+            }}
+            onCancel={() => {
+              void cancelConversion();
+            }}
+          />
+        ) : null}
+        <ActionBar
+          disabled={actionsDisabled}
+          canConvert={apiReady && hasFiles && Boolean(outputDir) && !isConverting}
+          canClear={hasFiles && !isConverting}
+          isConverting={isConverting}
+          fileCount={files.length}
+          onConvert={convert}
+          onClear={clearList}
+        />
+      </div>
     </div>
   );
 }

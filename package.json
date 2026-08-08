@@ -28,9 +28,16 @@
     "preview": "npm run build && electron ."
   },
   "dependencies": {
-    "heic-convert": "^2.1.0"
+    "@fortawesome/fontawesome-svg-core": "^7.3.1",
+    "@fortawesome/free-solid-svg-icons": "^7.3.1",
+    "@fortawesome/react-fontawesome": "^3.5.0",
+    "heic-convert": "^2.1.0",
+    "heic-decode": "^2.1.0",
+    "jpeg-js": "^0.4.4"
   },
   "devDependencies": {
+    "@types/heic-decode": "^2.0.0",
+    "@types/jpeg-js": "^0.3.0",
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
@@ -57,7 +64,9 @@
     "asar": true,
     "asarUnpack": [
       "**/node_modules/heic-convert/**",
-      "**/node_modules/libheif-js/**"
+      "**/node_modules/heic-decode/**",
+      "**/node_modules/libheif-js/**",
+      "**/dist/main/services/preview-worker.js"
     ],
     "files": [
       "dist/**/*",

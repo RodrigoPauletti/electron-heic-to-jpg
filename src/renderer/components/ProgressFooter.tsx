@@ -8,6 +8,7 @@ interface ProgressFooterProps {
   overall: number;
   summary: ConvertBatchSummary | null;
   onOpenFolder: () => void;
+  onCancel: () => void;
 }
 
 export function ProgressFooter({
@@ -18,29 +19,37 @@ export function ProgressFooter({
   overall,
   summary,
   onOpenFolder,
+  onCancel,
 }: ProgressFooterProps) {
   const showSummary = Boolean(summary) && !isConverting;
 
+  if (!isConverting && !showSummary) {
+    return null;
+  }
+
   return (
     <div className="panel footer">
-      {(isConverting || total > 0) && (
+      {isConverting && total > 0 ? (
         <div className="overall">
           <div className="overall-top">
             <span>
-              {isConverting
-                ? `Convertendo… ${done} de ${total}`
-                : `Progresso geral — ${done}/${total} concluído(s)`}
+              Convertendo… {done} de {total}
             </span>
             <span>{overall}%</span>
           </div>
           <div className="progress" aria-label="Progresso geral">
             <span style={{ width: `${overall}%` }} />
           </div>
+          <div className="footer-actions">
+            <button type="button" className="btn btn-danger" onClick={onCancel}>
+              Cancelar conversão
+            </button>
+          </div>
         </div>
-      )}
+      ) : null}
 
       {showSummary && summary ? (
-        <div className={`summary${summary.failed > 0 ? ' has-errors' : ''}`}>
+        <div className={`summary${summary.failed > 0 || summary.cancelled ? ' has-errors' : ''}`}>
           <div className="summary-text">
             <strong>
               {summary.converted} arquivo{summary.converted === 1 ? '' : 's'} convertido

@@ -14,11 +14,22 @@ export interface SourceFileInfo {
   size: number;
 }
 
+export type PreviewStatus = 'idle' | 'loading' | 'ready' | 'error';
+
 export interface QueueFile extends SourceFileInfo {
   status: FileStatus;
   progress: number;
   error?: string;
   outputPath?: string;
+  previewUrl?: string;
+  previewStatus?: PreviewStatus;
+  previewError?: string;
+}
+
+export interface GetPreviewResult {
+  path: string;
+  dataUrl?: string;
+  error?: string;
 }
 
 export interface ConvertBatchRequest {

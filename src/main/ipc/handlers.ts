@@ -8,6 +8,7 @@ import type {
 } from '../../shared/types';
 import { getDefaultConvertedDir, resolveHeicPaths } from '../services/file-system';
 import { convertBatch } from '../services/image-converter';
+import { clearPreviewCache, getHeicPreview } from '../services/preview';
 import { assertSafeAbsolutePath } from '../services/path-utils';
 
 let conversionSignal: { cancelled: boolean } | null = null;
@@ -201,5 +202,13 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.OPEN_PATH, async (_event, targetPath: unknown) => {
     const safePath = assertSafeAbsolutePath(targetPath, 'Caminho');
     return shell.openPath(safePath);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_PREVIEW, async (_event, filePath: unknown) => {
+    return getHeicPreview(filePath);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.CLEAR_PREVIEW_CACHE, async () => {
+    clearPreviewCache();
   });
 }
