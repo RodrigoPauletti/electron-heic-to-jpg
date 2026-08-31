@@ -31,8 +31,9 @@ Conversion runs in the main process over a secure IPC bridge (`contextIsolation`
 | --- | --- | --- |
 | **macOS** | Apple Silicon (`arm64`) and Intel (`x64`) | DMG, ZIP |
 | **Windows** | x64 | NSIS installer |
+| **Linux** | x64 and arm64 | AppImage, deb |
 
-> **Note:** Building the Windows installer on macOS may require extra setup (e.g. Wine) or a Windows CI runner. For best results, run `dist:win` on a Windows machine.
+> **Note:** Cross-platform builds may require extra setup (e.g. Wine for Windows on macOS). For best results, run each platform's `dist:*` script on a native host or CI runner.
 
 ## Requirements
 
@@ -92,6 +93,23 @@ npm run dist:win
 ```
 
 Produces an NSIS installer in `release/`.
+
+### Linux (x64 + arm64)
+
+```bash
+npm run dist:linux
+```
+
+Produces AppImage and deb packages in `release/`.
+
+Build a single architecture:
+
+```bash
+npm run dist:linux:x64     # x64 only
+npm run dist:linux:arm64   # arm64 only
+```
+
+> Run Linux builds on a Linux machine. AppImage works on most distributions without installation; deb targets Debian and Ubuntu.
 
 ### All platforms
 

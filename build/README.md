@@ -1,15 +1,15 @@
-# Ícones do aplicativo
+# App Icons
 
-Fonte incluída: `icon.svg`.
+Source file included: `icon.svg`.
 
-Para usar ícone customizado no instalador:
+To use a custom icon in installers:
 
-1. Exporte `icon.svg` para PNG **1024×1024**
-2. Salve como `build/icon.png`
-3. No `package.json`, em `build.mac` e `build.win`, adicione:
+1. Export `icon.svg` to PNG at **1024×1024**
+2. Save as `build/icon.png`
+3. In `package.json`, under `build.mac`, `build.win`, and `build.linux`, add:
 
 ```json
 "icon": "build/icon.png"
 ```
 
-O electron-builder gera `.icns` (macOS) e `.ico` (Windows) a partir do PNG.
+electron-builder generates `.icns` (macOS), `.ico` (Windows), and Linux icons from the PNG.
